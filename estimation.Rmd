@@ -1,0 +1,71 @@
+---
+title: "Estimating DCMs"
+output: html_notebook
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r setup, include = FALSE}
+library(measr)
+library(fs)
+
+if (!dir_exists("fits")) dir_create("fits")
+```
+
+## Exercise 1
+
+View the MacReady & Dayton (1977) data (`mdm_data` and `mdm_qmatrix`).
+
+1. How many items are in the data?
+2. How many respondents are in the data?
+3. How many attributes are measured?
+
+```{r}
+
+```
+
+## Exercise 2
+
+Complete the `parameters` and `transformed parameters` blocks for the MDM data.
+
+```{stan output.var="mdm_lcdm", eval = FALSE}
+data {
+  int<lower=1> I;           // # of items
+  int<lower=1> R;           // # of respondents 
+  int<lower=1> A;           // # of attributes
+  int<lower=1> C;           // # of attribute profiles (latent classes) 
+  matrix[R,I] y;            // response matrix
+}
+parameters {
+  simplex[C] Vc;
+  
+  // item parameters
+  
+}
+transformed parameters {
+  matrix[I,C] PImat;
+  
+  PImat[1,1] = inv_logit();
+  PImat[1,2] = inv_logit();
+  PImat[2,1] = inv_logit();
+  PImat[2,2] = inv_logit();
+  PImat[3,1] = inv_logit();
+  PImat[3,2] = inv_logit();
+  PImat[4,1] = inv_logit();
+  PImat[4,2] = inv_logit();
+}
+model {
+  for (r in 1:R) {
+    real ps[C];
+    for (c in 1:C) {
+      real log_items[I];
+      for (i in 1:I) {
+        log_items[i] = y[r,i] * log(PImat[i,c]) + (1 - y[r,i]) * log(1 - pi[i,c]);
+      }
+      ps[c] = log(Vc[c]) + sum(log_items);
+    }
+    target += log_sum_exp(ps);
+  }
+}
+```
+
