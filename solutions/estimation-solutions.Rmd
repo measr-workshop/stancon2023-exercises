@@ -1,5 +1,5 @@
 ---
-title: "Estimating DCMs"
+title: "Estimating DCMs - Solutions"
 output: html_notebook
 editor_options: 
   chunk_output_type: inline
@@ -21,7 +21,13 @@ View the MacReady & Dayton (1977) data (`mdm_data` and `mdm_qmatrix`).
 3. How many attributes are measured?
 
 ```{r}
+# 142 rows = 142 respondents
+# 4 non-ID columns = 4 items
+mdm_data
 
+# 4 rows = 4 items
+# 1 non-ID column = 1 attribute (multiplication)
+mdm_qmatrix
 ```
 
 ## Exercise 2
@@ -40,19 +46,26 @@ parameters {
   simplex[C] Vc;
   
   // item parameters
-  
+  real l1_0;
+  real<lower=0> l1_11;
+  real l2_0;
+  real<lower=0> l2_11;
+  real l3_0;
+  real<lower=0> l3_11;
+  real l4_0;
+  real<lower=0> l4_11;
 }
 transformed parameters {
   matrix[I,C] PImat;
   
-  PImat[1,1] = inv_logit();
-  PImat[1,2] = inv_logit();
-  PImat[2,1] = inv_logit();
-  PImat[2,2] = inv_logit();
-  PImat[3,1] = inv_logit();
-  PImat[3,2] = inv_logit();
-  PImat[4,1] = inv_logit();
-  PImat[4,2] = inv_logit();
+  PImat[1,1] = inv_logit(l1_0);
+  PImat[1,2] = inv_logit(l1_0 + l1_11);
+  PImat[2,1] = inv_logit(l2_0);
+  PImat[2,2] = inv_logit(l2_0 + l2_11);
+  PImat[3,1] = inv_logit(l3_0);
+  PImat[3,2] = inv_logit(l3_0 + l3_11);
+  PImat[4,1] = inv_logit(l4_0);
+  PImat[4,2] = inv_logit(l4_0 + l4_11);
 }
 model {
   for (r in 1:R) {
@@ -79,11 +92,11 @@ Estimate and LCDM on the MDM data. Your model should have:
 
 ```{r}
 mdm_lcdm <- measr_dcm(
-  data = _____, qmatrix = _____,
-  resp_id = _____, item_id = _____,
-  type = _____,
-  method = _____, backend = _____,
-  _____,
+  data = mdm_data, qmatrix = mdm_qmatrix,
+  resp_id = "respondent", item_id = "item",
+  type = "lcdm",
+  method = "mcmc", backend = "cmdstanr",
+  iter_warmup = 1000, iter_sampling = 500, chains = 2,
   file = "fits/mdm-lcdm"
 )
 ```
@@ -95,7 +108,10 @@ What proportion of respondents have mastered multiplication in the MDM data?
 What is the probability that respondent zfn2i has mastered multiplication?
 
 ```{r}
+measr_extract(mdm_lcdm, "strc_param")
 
+mdm_lcdm <- add_respondent_estimates(mdm_lcdm)
+measr_extract(mdm_lcdm, "attribute_prob")
 ```
 
 ## Exercise 5
@@ -113,11 +129,12 @@ new_mdm <- measr_dcm(
   data = mdm_data, qmatrix = mdm_qmatrix,
   resp_id = "respondent", item_id = "item",
   type = "lcdm",
-  _____,
+  prior = c(prior(normal(-1, 2), class = "intercept"),
+            prior(normal(0, 1), class = "intercept", coef = "l3_0")),
   method = "mcmc", backend = "cmdstanr",
   iter_warmup = 1000, iter_sampling = 500, chains = 2,
   file = "fits/mdm-new-prior"
 )
 
-measr_extract(new_mdm, _____)
+measr_extract(new_mdm, "prior")
 ```
