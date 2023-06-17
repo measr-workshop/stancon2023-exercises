@@ -1,0 +1,106 @@
+---
+title: "Evaluating DCMs"
+output: html_notebook
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r setup, include = FALSE}
+library(measr)
+library(fs)
+
+if (!dir_exists("fits")) dir_create("fits")
+
+# estimate/read LCDM model
+mdm_lcdm <- measr_dcm(
+  data = mdm_data, qmatrix = mdm_qmatrix,
+  resp_id = "respondent", item_id = "item",
+  type = "lcdm",
+  method = "mcmc", backend = "cmdstanr",
+  iter_warmup = 1000, iter_sampling = 500, chains = 2,
+  file = "fits/mdm-lcdm"
+)
+```
+
+## Exercise 1
+
+* Calculate the M~2~ statistic for the MDM LCDM model using `add_fit()`
+
+* Extract the M~2~ statistic. Does the model fit the data?
+
+```{r}
+mdm_lcdm <- add_fit(mdm_lcdm, method = "m2")
+
+measr_extract(mdm_lcdm, "m2")
+```
+
+## Exercise 2
+
+* Calculate the raw score PPMC for the MDM LCDM
+
+* Does the model fit the observed data?
+
+```{r}
+mdm_lcdm <- add_fit(mdm_lcdm, method = "ppmc", item_fit = NULL)
+
+measr_extract(mdm_lcdm, "ppmc_raw_score")
+```
+
+## Exercise 3
+
+* Calculate PPMCs for the conditional probabilities and odds ratios for the MDM model
+
+* What do the results tell us about the model?
+
+```{r}
+mdm_lcdm <- add_fit(mdm_lcdm, method = "ppmc",
+                    item_fit = c("conditional_prob", "odds_ratio"))
+
+measr_extract(mdm_lcdm, "ppmc_conditional_prob_flags")
+
+measr_extract(mdm_lcdm, "ppmc_odds_ratio_flags")
+```
+
+## Exercise 4
+
+* Estimate a DINA model for the MDM data
+
+* Add PSIS-LOO and WAIC criteria to both the LCDM and DINA models for the MDM data
+
+* Use `loo_compare()` to compare the LCDM and DINA models
+  * What do the findings tell us?
+  * Can you explain the results?
+
+```{r}
+# Estimate the DINA model
+mdm_dina <- measr_dcm(
+  data = mdm_data, qmatrix = mdm_qmatrix,
+  resp_id = "respondent", item_id = "item",
+  type = "dina",
+  method = "mcmc", backend = "rstan",
+  warmup = 1000, iter = 1500, chains = 2,
+  file = "fits/mdm-dina"
+)
+
+# Add criteria
+mdm_lcdm <- add_criterion(mdm_lcdm, criterion = c("loo", "waic"))
+mdm_dina <- add_criterion(mdm_dina, criterion = c("loo", "waic"))
+
+# Compare criteria
+loo_compare(mdm_lcdm, mdm_dina, criterion = "loo")
+loo_compare(mdm_lcdm, mdm_dina, criterion = "waic")
+```
+
+## Exercise 5
+
+* Add reliability information to the MDM LCDM and DINA models
+
+* Examine the attribute classification indices for both models
+
+```{r}
+mdm_lcdm <- add_reliability(mdm_lcdm)
+mdm_dina <- add_reliability(mdm_dina)
+
+measr_extract(mdm_lcdm, "classification_reliability")
+measr_extract(mdm_dina, "classification_reliability")
+```

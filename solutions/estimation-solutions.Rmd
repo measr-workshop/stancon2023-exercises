@@ -95,8 +95,8 @@ mdm_lcdm <- measr_dcm(
   data = mdm_data, qmatrix = mdm_qmatrix,
   resp_id = "respondent", item_id = "item",
   type = "lcdm",
-  method = "mcmc", backend = "cmdstanr",
-  iter_warmup = 1000, iter_sampling = 500, chains = 2,
+  method = "mcmc", backend = "rstan",
+  warmup = 1000, iter = 1500, chains = 2,
   file = "fits/mdm-lcdm"
 )
 ```
@@ -131,8 +131,8 @@ new_mdm <- measr_dcm(
   type = "lcdm",
   prior = c(prior(normal(-1, 2), class = "intercept"),
             prior(normal(0, 1), class = "intercept", coef = "l3_0")),
-  method = "mcmc", backend = "cmdstanr",
-  iter_warmup = 1000, iter_sampling = 500, chains = 2,
+  method = "mcmc", backend = "rstan",
+  warmup = 1000, iter = 1500, chains = 2,
   file = "fits/mdm-new-prior"
 )
 
